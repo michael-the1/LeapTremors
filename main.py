@@ -46,5 +46,25 @@ def main():
     finally:
         controller.remove_listener(listener)
 
+
+def sliding_window(data, n=128, offset=64):
+    '''Takes a list of data and returns the data divided into windows.'''
+
+    assert len(data) > n
+    assert offset < n
+
+    # snip off data that doesn't fall neatly in multiples of n
+    remainder = len(data) % n
+    data = data[:-remainder]
+    print len(data)
+    windows = []
+    i = 0
+    while i < len(data):
+        windows.append(data[i:i+n])
+        i = i + offset
+    print len(windows)
+
+    return windows
+
 if __name__ == '__main__':
     main()

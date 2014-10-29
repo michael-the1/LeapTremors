@@ -4,6 +4,8 @@ from matplotlib.mlab import PCA, specgram
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
 
+from main import sliding_window
+
 class Arrow3D(FancyArrowPatch):
     '''3D arrow for plotting'''
     def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -16,8 +18,7 @@ class Arrow3D(FancyArrowPatch):
         self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
         FancyArrowPatch.draw(self, renderer)
 
-if __name__ == '__main__':
-    data = np.load('measurements.npy')
+def old_plot(data):
     t,c,x,y,z = zip(*data)
     pca = PCA(np.array(zip(x,y,z)))
 
@@ -30,6 +31,7 @@ if __name__ == '__main__':
     ax.set_xlabel('X axis')
     ax.set_ylabel('Z axis')
     ax.set_zlabel('Y axis')
+    ax.set_aspect('equal')
     ax.scatter(x,z,y)
 
     # Center
@@ -66,9 +68,9 @@ if __name__ == '__main__':
     legend = plt.legend()
     ax.add_artist(legend)
 
-    # spectogram
-    ax = fig.add_subplot(2, 2, 4)
-    ax.specgram(y, scale_by_freq=True)
-    
-    plt.title("Spectogram")
     plt.show()
+
+if __name__ == '__main__':
+    data = np.load('measurements.npy')
+    windows = sliding_window(data)
+    old_plot(data)

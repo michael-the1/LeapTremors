@@ -1,5 +1,6 @@
-*.sw[op]    # vim
-leap/   # virtualenv
+*.sw[op]
+leap/
+measurements.npy
 
 # LeapMotion module, install this yourself
 LeapPython.so

@@ -17,7 +17,6 @@ from scipy.interpolate import interp1d
 x = []
 y = []
 
-
 class SampleListener(Leap.Listener):
 
     def on_connect(self, controller):
@@ -29,7 +28,6 @@ class SampleListener(Leap.Listener):
 
         print "Frame id: %d  timestamp: %d  hand position: %f" % (
             frame.id, frame.timestamp, hand.palm_position.y)
-        global x, y
         x.append(frame.timestamp)
         y.append(hand.palm_position.y)
 
@@ -47,43 +45,45 @@ def main():
         pass
     finally:
         controller.remove_listener(listener)
+        plot_data(x, y)
 
-        # time data starts from 0 and is set to seconds
-        x[:] = [(t - x[0]) / 1e6 for t in x]
-        xf, yf = fourier_transform(x, y)
+def plot_data(x, y):
+    # time data starts from 0 and is set to seconds
+    x[:] = [(t - x[0]) / 1e6 for t in x]
+    xf, yf = fourier_transform(x, y)
 
-        print(xf.min(), xf.max())
+    print(xf.min(), xf.max())
 
-        print("total time: %f" % (x[-1]))
-        print("hertz: %f" % get_hertz(xf, yf))
+    print("total time: %f" % (x[-1]))
+    print("hertz: %f" % get_hertz(xf, yf))
 
-        # plot the fft with reasonable amount of hertz(1+ Hz); x axis: hertz
+    # plot the fft with reasonable amount of hertz(1+ Hz); x axis: hertz
 
-        plt.grid()
+    plt.grid()
 
-        xi, yi = interpolate(x, y)
+    xi, yi = interpolate(x, y)
 
-        print("length of y: %d" % len(y))
+    print("length of y: %d" % len(y))
 
-        xif, yif = fourier_transform(xi, yi)
+    xif, yif = fourier_transform(xi, yi)
 
-        print(xif.min(), xif.max())
-        print("total time: %f" % (xi[-1]))
-        print("hertz: %f" % get_hertz(xif, yif))
+    print(xif.min(), xif.max())
+    print("total time: %f" % (xi[-1]))
+    print("hertz: %f" % get_hertz(xif, yif))
 
-        plt.figure(2)
-        plt.subplot(211)
-        plt.plot(xi, yi)
-        plt.xlabel("time(seconds)")
-        plt.ylabel("y-value(handpalm)")
-        plt.grid()
+    plt.figure(2)
+    plt.subplot(211)
+    plt.plot(xi, yi)
+    plt.xlabel("time(seconds)")
+    plt.ylabel("y-value(handpalm)")
+    plt.grid()
 
-        # plot the fft with reasonable amount of hertz(1+ Hz); x axis: hertz
-        plt.subplot(212)
-        plt.plot(xif * 100, np.abs(yif))
-        plt.xlabel('Hertz')
-        plt.grid()
-        plt.show()
+    # plot the fft with reasonable amount of hertz(1+ Hz); x axis: hertz
+    plt.subplot(212)
+    plt.plot(xif * 100, np.abs(yif))
+    plt.xlabel('Hertz')
+    plt.grid()
+    plt.show()
 
 
 def fourier_transform(x, y):

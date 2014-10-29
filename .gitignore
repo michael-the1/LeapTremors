@@ -1,3 +1,6 @@
+*.sw[op]    # vim
+leap/   # virtualenv
+
 # LeapMotion module, install this yourself
 LeapPython.so
 libLeap.so

@@ -1,5 +1,11 @@
+# vim
+*.~
 *.sw[op]
+
+# virtualenv
 leap/
+
+# data file
 measurements.npy
 
 # LeapMotion module, install this yourself

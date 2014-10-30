@@ -4,7 +4,13 @@ from matplotlib.mlab import PCA
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
-from main import sliding_window
+import scipy
+import scipy.fftpack
+import pylab
+import math
+
+from numpy import fft
+from scipy.interpolate import interp1d
 
 
 class Arrow3D(FancyArrowPatch):
@@ -91,12 +97,134 @@ def plot_windows(data):
         v = pca.Wt[0]
         pv_x, pv_y, pv_z = v * pca.sigma + pca.mu
         ax1.plot([pv_x], [pv_z], [pv_y], 'o', markersize=10, color='green', alpha=0.5)
-        a = Arrow3D([mu_x, pv_x], [mu_z, pv_z], [mu_y, pv_y], mutation_scale=20, lw=3, arrowstyle="-|>", color=str((i+1.0)/(len(windows)+1.0)))
+        color = str((i + 1.0) / (len(windows) + 1.0))
+        a = Arrow3D([mu_x, pv_x], [mu_z, pv_z], [mu_y, pv_y], mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
         ax1.add_artist(a)
-        ax2.arrow(mu_x, mu_y, pv_x - mu_x, pv_y - mu_y, width=1, head_width=3, head_length=4, color=str((i+1.0)/(len(windows)+1.0)))
+        ax2.arrow(mu_x, mu_y, pv_x - mu_x, pv_y - mu_y, width=1, head_width=3, head_length=4, color=color)
 
     plt.show()
- 
+
+
+def sliding_window(data, n=128, offset=64):
+    '''Takes a list of data and returns the data divided into windows.'''
+
+    assert len(data) > n
+    assert offset < n
+
+    # snip off data that doesn't fall neatly in multiples of n
+    remainder = len(data) % n
+    data = data[:-remainder]
+    print len(data)
+    windows = []
+    i = 0
+    while i < len(data):
+        windows.append(data[i:i+n])
+        i = i + offset
+    print len(windows)
+
+    return windows
+
+
+def plot_data(x, y):
+    # time data starts from 0 and is set to seconds
+    x[:] = [(t - x[0]) / 1e6 for t in x]
+    xf, yf = fourier_transform(x, y)
+
+    print(xf.min(), xf.max())
+
+    print("total time: %f" % (x[-1]))
+    print("hertz: %f" % get_hertz(x, y, xf, yf))
+
+    # plot the fft with reasonable amount of hertz(1+ Hz); x axis: hertz
+
+    plt.grid()
+
+    xi, yi = interpolate(x, y)
+
+    print("length of y: %d" % len(y))
+
+    xif, yif = fourier_transform(xi, yi)
+
+    print(xif.min(), xif.max())
+    print("total time: %f" % (xi[-1]))
+    print("hertz: %f" % get_hertz(x, y, xif, yif))
+
+    plt.figure(2)
+    plt.subplot(211)
+    plt.plot(xi, yi)
+    plt.xlabel("time(seconds)")
+    plt.ylabel("y-value(handpalm)")
+    plt.grid()
+
+    # plot the fft with reasonable amount of hertz(1+ Hz); x axis: hertz
+    plt.subplot(212)
+    plt.plot(xif * 100, np.abs(yif))
+    plt.xlabel('Hertz')
+    plt.grid()
+    plt.show()
+
+
+def fourier_transform(x, y):
+    # fourier transform on the data
+    yf = fft.fft(y)
+    # frequency of the data
+    xf = fft.fftfreq(len(yf))
+    # show frequency range 1Hz to 10Hz
+    mask = (xf > 0.01) & (xf <= .10)
+    xf = xf[mask]
+    yf = yf[mask]
+    return xf, yf
+
+
+def get_hertz(x, y, xf, yf):
+    ayf = np.abs(yf)**2
+    # find the max argument of ayf except the first one
+    idx = np.argmax(ayf)
+    # find the frequency in the processed timestamps
+    freq = xf[idx]
+    print("freq: %f" % freq)
+    # framerate is the total amount of frames divided by the total time in seconds
+    frate = len(y) / (x[-1])
+    print("frate: %f" % frate)
+    hertz = abs(freq * frate)
+    return hertz
+
+
+def interpolate(x, y):
+    '''Interpolate on 100 frames'''
+    yi = interp1d(x, y)
+    yi2 = interp1d(x, y, kind='cubic')
+
+    # total datapoints at 100 frames/s (rounded up)
+    points = int(math.ceil(x[-1] * 100))
+
+    xi = np.linspace(x[0], x[-1], points)
+
+    plt.figure(1)
+    plt.plot(x, y, 'o', xi, yi(xi), '-', xi, yi2(xi), '--')
+    plt.xlabel("time(seconds)")
+    plt.ylabel("y-value(handpalm)")
+    plt.legend(['data', 'linear', 'cubic'], loc='best')
+    plt.grid()
+
+    ynew = []
+    for x in range(0, points):
+        ynew.append(yi(xi[x]).item())
+
+    return xi, ynew
+
+
+def fourier_scipy(x, y):
+    '''Alternative fft function'''
+    yf = abs(scipy.fft(y))
+    xf = scipy.fftpack.fftfreq(len(y), x[1] - x[0])
+
+    pylab.subplot(211)
+    pylab.plot(x, y)
+    pylab.subplot(212)
+    pylab.plot(xf, 20 * scipy.log10(yf), 'x')
+    pylab.show()
+
 
 if __name__ == '__main__':
     data = np.load('measurements.npy')

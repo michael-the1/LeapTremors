@@ -74,10 +74,13 @@ def plot_whole_data(data):
 
 
 def plot_windows(data):
-    windows = sliding_window(data)
+    windows = sliding_window(data, offset=32)
+    t, c, x, y, z = zip(*data)
     fig = plt.figure()
-    ax1 = fig.add_subplot(211, projection='3d')
-    for window in windows:
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax2 = fig.add_subplot(122)
+    ax2.plot(x, y)
+    for i, window in enumerate(windows):
         t, c, x, y, z = zip(*window)
         pca = PCA(np.array(zip(x, y, z)))
         # Center
@@ -88,15 +91,22 @@ def plot_windows(data):
         v = pca.Wt[0]
         pv_x, pv_y, pv_z = v * pca.sigma + pca.mu
         ax1.plot([pv_x], [pv_z], [pv_y], 'o', markersize=10, color='green', alpha=0.5)
-        a = Arrow3D([mu_x, pv_x], [mu_z, pv_z], [mu_y, pv_y], mutation_scale=20, lw=3, arrowstyle="-|>", color="r")
+        a = Arrow3D([mu_x, pv_x], [mu_z, pv_z], [mu_y, pv_y], mutation_scale=20, lw=3, arrowstyle="-|>", color=str((i+1.0)/(len(windows)+1.0)))
         ax1.add_artist(a)
+        ax2.arrow(mu_x, mu_y, pv_x - mu_x, pv_y - mu_y, width=1, head_width=3, head_length=4, color=str((i+1.0)/(len(windows)+1.0)))
 
-    ax2 = fig.add_subplot(212)
-    ax2.arrow(mu_x, mu_y, pv_x - mu_x, pv_y - mu_y, width=2, head_width=5, head_length=5, fc='k', ec='k')
     plt.show()
  
 
 if __name__ == '__main__':
     data = np.load('measurements.npy')
-    plot_windows(data)
-    plot_whole_data(data)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', action='store_true', help='Plot stuff')
+    parser.add_argument('-w', action='store_true', help='Plot windowed stuff')
+    args = parser.parse_args()
+
+    if args.p:
+        plot_whole_data(data)
+    elif args.w:
+        plot_windows(data)

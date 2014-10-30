@@ -125,40 +125,39 @@ def sliding_window(data, n=128, offset=64):
     return windows
 
 
-def plot_data(x, y):
+def plot_fourier(data):
+    t, c, x, y, z = zip(*data)
+    t = list(t)
     # time data starts from 0 and is set to seconds
-    x[:] = [(t - x[0]) / 1e6 for t in x]
-    xf, yf = fourier_transform(x, y)
+    t[:] = [(s - t[0]) for s in t]
+    tf, yf = fourier_transform(t, y)
 
-    print(xf.min(), xf.max())
+    print(tf.min(), tf.max())
 
-    print("total time: %f" % (x[-1]))
-    print("hertz: %f" % get_hertz(x, y, xf, yf))
+    print("total time: %f" % (t[-1]))
+    print("hertz: %f" % get_hertz(t, y, tf, yf))
 
     # plot the fft with reasonable amount of hertz(1+ Hz); x axis: hertz
-
-    plt.grid()
-
-    xi, yi = interpolate(x, y)
+    ti, yi = interpolate(t, y)
 
     print("length of y: %d" % len(y))
 
-    xif, yif = fourier_transform(xi, yi)
+    tif, yif = fourier_transform(ti, yi)
 
-    print(xif.min(), xif.max())
-    print("total time: %f" % (xi[-1]))
-    print("hertz: %f" % get_hertz(x, y, xif, yif))
+    print("total time: %f" % (ti[-1]))
+    print("hertz: %f" % get_hertz(t, y, tif, yif))
 
+    plt.grid()
     plt.figure(2)
     plt.subplot(211)
-    plt.plot(xi, yi)
+    plt.plot(ti, yi)
     plt.xlabel("time(seconds)")
     plt.ylabel("y-value(handpalm)")
     plt.grid()
 
     # plot the fft with reasonable amount of hertz(1+ Hz); x axis: hertz
     plt.subplot(212)
-    plt.plot(xif * 100, np.abs(yif))
+    plt.plot(tif * 100, np.abs(yif))
     plt.xlabel('Hertz')
     plt.grid()
     plt.show()
@@ -190,28 +189,26 @@ def get_hertz(x, y, xf, yf):
     return hertz
 
 
-def interpolate(x, y):
+def interpolate(t, y, fps=100):
     '''Interpolate on 100 frames'''
-    yi = interp1d(x, y)
-    yi2 = interp1d(x, y, kind='cubic')
+    yi = interp1d(t, y)
+    yi2 = interp1d(t, y, kind='cubic')
 
     # total datapoints at 100 frames/s (rounded up)
-    points = int(math.ceil(x[-1] * 100))
+    points = int(math.ceil(t[-1] * fps))
 
-    xi = np.linspace(x[0], x[-1], points)
+    ti = np.linspace(t[0], t[-1], points)
 
     plt.figure(1)
-    plt.plot(x, y, 'o', xi, yi(xi), '-', xi, yi2(xi), '--')
+    plt.plot(t, y, 'o', ti, yi(ti), '-', ti, yi2(ti), '--')
     plt.xlabel("time(seconds)")
     plt.ylabel("y-value(handpalm)")
     plt.legend(['data', 'linear', 'cubic'], loc='best')
     plt.grid()
 
-    ynew = []
-    for x in range(0, points):
-        ynew.append(yi(xi[x]).item())
+    ynew = yi(ti)
 
-    return xi, ynew
+    return ti, ynew
 
 
 def fourier_scipy(x, y):
@@ -219,11 +216,11 @@ def fourier_scipy(x, y):
     yf = abs(scipy.fft(y))
     xf = scipy.fftpack.fftfreq(len(y), x[1] - x[0])
 
-    pylab.subplot(211)
-    pylab.plot(x, y)
-    pylab.subplot(212)
-    pylab.plot(xf, 20 * scipy.log10(yf), 'x')
-    pylab.show()
+    plt.subplot(211)
+    plt.plot(x, y)
+    plt.subplot(212)
+    plt.plot(xf, 20 * scipy.log10(yf), 'x')
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -232,9 +229,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', action='store_true', help='Plot stuff')
     parser.add_argument('-w', action='store_true', help='Plot windowed stuff')
+    parser.add_argument('-f', action='store_true', help='Plot fourier stuff')
     args = parser.parse_args()
 
     if args.p:
         plot_whole_data(data)
     elif args.w:
         plot_windows(data)
+    elif args.f:
+        plot_fourier(data)
